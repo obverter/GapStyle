@@ -10,7 +10,7 @@ def f(x):
          Color#1 SC1.1 SC1.2 SC1.3 SC1.4 Color#2 SC2.1 SC2.2 SC2.3 SC2.4 Color#3
          Color#3 SC3.1 SC3.2 SC3.3 SC3.4 Color#4 SC4.1 SC4.2 SC4.3 SC4.4 Color#5
     """
-    s = ("Test", 2+3, {'a': 'b'}, f'{x!s:{"^10"}}') # Comment
+    s = "Test", 2+3, {'a': 'b'}, f'{x!s:^10}'
     f(s[0].lower())
 
 class Foo:
@@ -173,12 +173,11 @@ class LigatureCreator(object):
             return
 
         width_delta = float(abs(glyph.width - self.emwidth)) / self.emwidth
+        scale = float(self.emwidth) / glyph.width
         if width_delta >= self.scale_ligature_threshold:
-            scale = float(self.emwidth) / glyph.width
             glyph.transform(psMat.scale(scale, 1.0))
             glyph.width = self.emwidth
         else:
-            scale = float(self.emwidth) / glyph.width
             glyph.width = self.emwidth
             glyph.left_side_bearing *= scale
             glyph.right_side_bearing *= scale
@@ -303,8 +302,8 @@ def update_font_metadata(font, new_name, font_copyright):
     # If a suffix was present, append it accordingly.
     font.familyname = new_name
     if suffix:
-        font.fullname = "%s %s" % (new_name, suffix)
-        font.fontname = "%s-%s" % (new_name.replace(' ', ''), suffix)
+        font.fullname = f"{new_name} {suffix}"
+        font.fontname = f"{new_name.replace(' ', '')}-{suffix}"
     else:
         font.fullname = new_name
         font.fontname = new_name.replace(' ', '')
@@ -313,7 +312,7 @@ def update_font_metadata(font, new_name, font_copyright):
         path.basename(font.path), old_name, new_name))
 
     font.copyright += font_copyright
-    replace_sfnt(font, 'UniqueID', '%s; Ligaturized' % font.fullname)
+    replace_sfnt(font, 'UniqueID', f'{font.fullname}; Ligaturized')
     replace_sfnt(font, 'Preferred Family', new_name)
     replace_sfnt(font, 'Compatible Full', new_name)
     replace_sfnt(font, 'WWS Family', new_name)
@@ -327,14 +326,11 @@ def ligaturize_font(input_font_file, output_dir, ligature_font_file,
         print('Error: missing specify the ligature font')
         sys.exit(1)
 
-    if output_name:
-        name = output_name
-    else:
-        name = font.familyname
+    name = output_name or font.familyname
     if suffix:
-        name = "%s %s" % (name, suffix)
+        name = f"{name} {suffix}"
 
-    print('    ...using ligatures from %s' % ligature_font_file)
+    print(f'    ...using ligatures from {ligature_font_file}')
     liga_font = fontforge.open(ligature_font_file)
 
     update_font_metadata(font, name, get_copyright(liga_font.familyname))
@@ -357,11 +353,7 @@ def ligaturize_font(input_font_file, output_dir, ligature_font_file,
 
     # Generate font type (TTF or OTF) corresponding to input font extension
     # (defaults to TTF)
-    if input_font_file[-4:].lower() == '.otf':
-        output_font_type = '.otf'
-    else:
-        output_font_type = '.ttf'
-
+    output_font_type = '.otf' if input_font_file[-4:].lower() == '.otf' else '.ttf'
     # Generate font & move to output directory
     output_font_file = path.join(output_dir, font.fontname + output_font_type)
     print("    ...saving to '%s' (%s)" % (output_font_file, font.fullname))
